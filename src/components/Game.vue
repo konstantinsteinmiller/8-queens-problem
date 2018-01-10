@@ -144,7 +144,7 @@
           console.log('this.tiles: ', this.tiles)
         }
 
-
+        //@ToDo reset occupiedByDame on the field tile, if returned to dame-pool-tile
         console.log('this.remainingDames: ', this.remainingDames);
         if (remainingDamesIndex !== undefined) {
           console.log('this.remainingDames: ', this.remainingDames, remainingDamesIndex)
