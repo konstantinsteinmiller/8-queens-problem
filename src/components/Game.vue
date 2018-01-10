@@ -151,7 +151,7 @@
         }
 
         //@ToDo reset occupiedByDame on the field tile, if returned to dame-pool-tile
-        console.log('this.remainingDames: ', this.remainingDames);
+        console.log('this.remainingDames: ', this.remainingDames)
         if (remainingDamesIndex !== undefined) {
           console.log('this.remainingDames: ', this.remainingDames, remainingDamesIndex)
           this.remainingDames[remainingDamesIndex].occupiedByDame = parseInt(dameNumber)
