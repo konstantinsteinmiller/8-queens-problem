@@ -124,12 +124,18 @@
         evt.target.parentNode.setAttribute('drop-active', true);
       },
       drag(evt) {
-        console.log('drag evt: ', evt, evt.srcElement)
+//        console.log('drag evt: ', evt, evt.srcElement)
         evt.dataTransfer.setData("text", evt.target.id)
       },
+      /* executes whenever the dame image is dropped on a chess tile or a dame-pool-tile
+      @params evt (Event): the drop type event when a dragged element is release by mouseclick
+      @params rowIndex (Number): maps the tile to the row in the tiles Array in the data property
+      @params tileIndex (Number): maps the tile to the index within a row in the tiles Array in the data property
+      @params remainingDamesIndex (Number): gives the tile index in the dame pool
+      * */
       drop(evt, rowIndex, tileIndex, remainingDamesIndex) {
-//        console.log('drop evt: ', evt, evt.target)
 
+//        remove the "droppable to" tile to remove highlighting on the tile
         evt.target.removeAttribute('drop-active')
         evt.target.parentNode.removeAttribute('drop-active')
         evt.preventDefault() //actually do drop the dame img on the tile
@@ -151,7 +157,6 @@
           this.remainingDames[remainingDamesIndex].occupiedByDame = parseInt(dameNumber)
         }
 
-
 //        its a dame pool tile, so set remove its
 //        evt.srcElement.parentNode.id.indexOf('dame-pool-tile') > -1
         console.log('draggedElement: ', evt, targetTile, dameNumber ,draggedElement);
@@ -159,6 +164,7 @@
       }
     }
   }
+        //@ToDo: comment the code
 </script>
 
 <style lang="stylus">
