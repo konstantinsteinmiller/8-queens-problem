@@ -1,19 +1,27 @@
 <template>
   <div class="problem">
     <h1>{{ title }}</h1>
-    <!--v-show="border.label" -->
     <div class="game-map">
 
       <div class="game-map__field">
         <div v-for="(row, rowIndex) in tiles" :class="(rowIndex%2 === 0) ? 'row row--even' :'row row--odd'">
         <span v-for="(tile, tileIndex) in row"
               class="tile"
+              :id="'tile_'+rowIndex+'_'+tileIndex"
               :class="[(tileIndex%2 === 0) ? 'tile--even' : 'tile--odd',
                       ((tileIndex%2 === 0 && rowIndex%2 === 0) || (tileIndex%2 === 1 && rowIndex%2 === 1)) ? 'tile--white' : 'tile--black']"
+              @dragover="allowDrop($event)"
+              @dragenter="dragEnter($event)"
+              @dragleave="dragLeave($event)"
+              @drop="drop($event, rowIndex, tileIndex)"
         >
-          <img v-if="tile.occupied"
+          <img v-if="tile.occupied >= 0"
+               draggable="true"
+               @dragstart="drag($event)"
                src="/static/dame_transparent.png"
-               :class="[(tile.occupied) ? 'tile--occupied' : '', (tile.threatened) ? 'tile--threatened' : '']">
+               :id="'dame_' + tile.occupiedByDame"
+               :data-dame-number="tile.occupiedByDame"
+               :class="[(tile.occupiedByDame >= 0) ? 'tile--occupied' : '', (tile.threatened) ? 'tile--threatened' : '']">
 
         </span>
         </div>
@@ -28,9 +36,19 @@
           </span>
         </div>
         <div class="game-map__dame-pool">
-        <span v-for="(remainingDame, remainingDamesIndex) in remainingDames" class="tile">
+        <span v-for="(remainingDame, remainingDamesIndex) in remainingDames"
+              class="tile"
+              :id="'dame-pool-tile-'+remainingDamesIndex"
+              @dragover="allowDrop($event)"
+              @dragenter="dragEnter($event)"
+              @dragleave="dragLeave($event)"
+              @drop="drop($event, rowIndex = undefined, tileIndex = undefined, remainingDamesIndex = remainingDamesIndex)">
           <img src="/static/dame_transparent.png"
-               :class="[(!remainingDame.placed) ? 'tile--occupied' : '', (remainingDame.threatened) ? 'tile--threatened' : '']">
+               draggable="true"
+               @dragstart="drag($event)"
+               :id="'dame_'+(remainingDamesIndex + 1)"
+               :data-dame-number="(remainingDamesIndex + 1)"
+               :class="[(!remainingDame.occupiedByDame >= 0) ? 'tile--occupied' : '', (remainingDame.threatened) ? 'tile--threatened' : '']">
         </span>
         </div>
 
@@ -43,7 +61,7 @@
   import axios from 'axios'
 
   export default {
-    name: 'hello',
+    name: 'dames-problem',
     data() {
       return {
         /* create map of background board tiles, that indicate the position of the set dames.
@@ -81,17 +99,63 @@
       },
       setupTiles() {
         this.tiles = this.tiles.map((row, ri) => {
-            return row.map((tile, index) => {
-              if (index === 3 && (ri === 4 || ri === 1)) return { occupied: true, threatened: false }
-              return { occupied: false, threatened: false }
-            })
+          return row.map((tile, index) => {
+            if (index === 3 && (ri === 4 || ri === 1)) return { occupiedByDame: (ri === 1) ? 2 : 1, threatened: false }
+            return { occupiedByDame: -1, threatened: false }
+          })
         })
-        console.log('this.tiles: ', this.tiles);
       },
       setupDames() {
-        this.remainingDames = [{}, {}, {}, {}, {}, {}, {}, {}].map((el) => {
-            return { placed: false }
+        this.remainingDames = [{}, {}, {}, {}, {}, {}, {}, {}].map((dame, dameIndex) => {
+            return { occupiedByDame: (dameIndex+1) }
         })
+      },
+//      handle drag and dropping the dames manually
+      allowDrop(evt) {
+//        console.log('allowDrop evt: ', evt, evt.target);
+        evt.target.tagName === "SPAN" && !evt.target.classList.contains('tile--threatened') && evt.preventDefault();
+      },
+      dragLeave(evt) {
+        evt.target.parentNode.removeAttribute('drop-active');
+        evt.dataTransfer.setData("text", evt.target.id);
+      },
+      dragEnter(evt) {
+//        console.log('allowDrop evt: ', evt.target);
+        evt.target.parentNode.setAttribute('drop-active', true);
+      },
+      drag(evt) {
+        console.log('drag evt: ', evt, evt.srcElement)
+        evt.dataTransfer.setData("text", evt.target.id)
+      },
+      drop(evt, rowIndex, tileIndex, remainingDamesIndex) {
+//        console.log('drop evt: ', evt, evt.target)
+
+        evt.target.removeAttribute('drop-active')
+        evt.target.parentNode.removeAttribute('drop-active')
+        evt.preventDefault() //actually do drop the dame img on the tile
+
+        var data = evt.dataTransfer.getData("text")
+        var draggedElement = document.getElementById(data)
+        var dameNumber = (draggedElement.dataset['dameNumber']) ? parseInt(draggedElement.dataset['dameNumber']) : -1;
+        var targetTile = null
+        if (rowIndex !== undefined && tileIndex !== undefined) {
+          targetTile = this.tiles[rowIndex][tileIndex]
+          targetTile.occupiedByDame = dameNumber
+          console.log('this.tiles: ', this.tiles)
+        }
+
+
+        console.log('this.remainingDames: ', this.remainingDames);
+        if (remainingDamesIndex !== undefined) {
+          console.log('this.remainingDames: ', this.remainingDames, remainingDamesIndex)
+          this.remainingDames[remainingDamesIndex].occupiedByDame = parseInt(dameNumber)
+        }
+
+
+//        its a dame pool tile, so set remove its
+//        evt.srcElement.parentNode.id.indexOf('dame-pool-tile') > -1
+        console.log('draggedElement: ', evt, targetTile, dameNumber ,draggedElement);
+        evt.target.appendChild(draggedElement);
       }
     }
   }
@@ -115,12 +179,13 @@
       position absolute
       top auto
       bottom -9vh
+      left 8vh
       /*top 8vh*/
       .tile
         /*clear both*/
         float right
         img:hover
-          cursor pointer
+          cursor grab
     &__border
       position absolute
       top -8vh
@@ -165,8 +230,12 @@
       float left
     &:hover
       .tile--occupied
-        cursor pointer
-        background green
+        background darkorange
+        cursor grab
+      .tile--threatened
+        /*cursor pointer*/
+        background darkred
+        cursor no-drop
     &--occupied
       width 8vh
       height 8vh
@@ -174,6 +243,8 @@
       width 8vh
       height 8vh
       /*background yellow*/
+      background darkred
+    &[drop-active=true]
       background darkred
 
 
