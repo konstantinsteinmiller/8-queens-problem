@@ -1,11 +1,11 @@
 <template>
   <div id="app">
-    <!--<img src="./assets/logo.png">-->
     <router-view></router-view>
   </div>
 </template>
 
 <script>
+
 export default {
   name: 'app'
 }
@@ -19,8 +19,9 @@ export default {
   text-align: center
   color #2c3e50
   border-radius .5em
-  background #e0e0e0
-  height 100%
-  min-height 100%
+  width 100vw
+  /*background #e0e0e0*/
+  /*height 100%*/
+  /*min-height 100%*/
 
 </style>

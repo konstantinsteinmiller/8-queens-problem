@@ -1,11 +1,22 @@
 <template>
   <div class="problem">
     <h1>{{ title }}</h1>
+
+    <span class="game-settings">
+      <!-- displays the button to find start the solution finder or manually search for solutions -->
+      <v-btn class=""
+             @click="findOneSolutions">find a solution</v-btn>
+      <v-btn class=""
+             @click="findAllSolutions">find all solutions</v-btn>
+      <v-btn class=""
+             @click="solveAlone">{{ (solve.mode === 'auto') ? 'solve alone' : 'reset' }}</v-btn>
+    </span>
+
     <div class="game-map">
 
       <div class="game-map__field">
         <div v-for="(row, rowIndex) in tiles" :class="(rowIndex%2 === 0) ? 'row row--even' :'row row--odd'">
-        <span v-for="(tile, tileIndex) in row"
+        <span v-for="(tile, tileIndex) in row" :key="rowIndex+'_'+tileIndex"
               class="tile"
               :id="'tile_'+rowIndex+'_'+tileIndex"
               :class="[(tileIndex%2 === 0) ? 'tile--even' : 'tile--odd',
@@ -15,21 +26,21 @@
               @dragleave="dragLeave($event)"
               @drop="drop($event, rowIndex, tileIndex)"
         >
-          <img v-if="tile.occupied >= 0"
-               draggable="true"
-               @dragstart="drag($event)"
-               src="/static/dame_transparent.png"
-               :id="'dame_' + tile.occupiedByDame"
-               :data-dame-number="tile.occupiedByDame"
-               :class="[(tile.occupiedByDame >= 0) ? 'tile--occupied' : '', (tile.threatened) ? 'tile--threatened' : '']">
+          <!--<img v-if="tile.occupiedByDame >= 0"-->
+               <!--draggable="true"-->
+               <!--@dragstart="dragStart($event)"-->
+               <!--src="/static/dame_transparent.png"-->
+               <!--:id="'dame_' + tile.occupiedByDame"-->
+               <!--:data-dame-number="tile.occupiedByDame"-->
+               <!--:class="[(tile.occupiedByDame >= 0) ? 'tile&#45;&#45;occupied' : '', (tile.threatened) ? 'tile&#45;&#45;threatened' : '']">-->
 
         </span>
         </div>
       </div>
       <div class="game-map__border">
-        <div v-for="(borderRow, borderRowIndex) in borderTiles"
+        <div v-for="(borderRow, borderRowIndex) in borderTiles" :key="borderRowIndex"
              class="row">
-          <span v-for="(borderTile, borderTileIndex) in borderRow"
+          <span v-for="(borderTile, borderTileIndex) in borderRow" :key="borderRowIndex + '_'+ borderTileIndex"
                 class="tile"
                 :class="(borderRowIndex > 0 && borderRowIndex <9 && borderTileIndex > 0 && borderTileIndex < 9) ? 'tile--background': ''">
             <span class="tile-label"><span v-if="borderTile.label">{{borderTile.label}}</span></span>
@@ -45,10 +56,10 @@
               @drop="drop($event, rowIndex = undefined, tileIndex = undefined, remainingDamesIndex = remainingDamesIndex)">
           <img src="/static/dame_transparent.png"
                draggable="true"
-               @dragstart="drag($event)"
+               @dragstart="dragStart($event)"
                :id="'dame_'+(remainingDamesIndex + 1)"
                :data-dame-number="(remainingDamesIndex + 1)"
-               :class="[(!remainingDame.occupiedByDame >= 0) ? 'tile--occupied' : '', (remainingDame.threatened) ? 'tile--threatened' : '']">
+               :class="[(remainingDame.occupiedByDame >= 0) ? 'tile--occupied' : '', (remainingDame.threatened) ? 'tile--threatened' : '']">
         </span>
         </div>
 
@@ -58,10 +69,13 @@
 </template>
 
 <script>
+  import Vue from 'vue'
   import axios from 'axios'
+  import dragAndDropMixin from './DragAndDrop.vue'
 
   export default {
     name: 'dames-problem',
+    mixins: [dragAndDropMixin],
     data() {
       return {
         /* create map of background board tiles, that indicate the position of the set dames.
@@ -85,7 +99,8 @@
                 [{},{},{},{},{},{},{},{}],
                 [{},{},{},{},{},{},{},{}]],
         remainingDames: [],
-        title: '8-Dames-Problem'
+        title: '8-Dames-Problem',
+        solve: { mode: 'auto', message: 'solve yourself'}
       }
     },
     mounted() {
@@ -106,61 +121,36 @@
         })
       },
       setupDames() {
-        this.remainingDames = [{}, {}, {}, {}, {}, {}, {}, {}].map((dame, dameIndex) => {
-            return { occupiedByDame: (dameIndex+1) }
+        /* remove all rendered dames*/
+        var $dames = document.querySelectorAll('img[data-dame-number]');
+        [].forEach.call($dames, function(dame) {
+          var dameSelector = '#dame-pool-tile-'+(parseInt(dame.dataset['dameNumber'])-1);
+          var $damePoolTile = document.querySelector(dameSelector);
+          $damePoolTile.appendChild(dame);
         })
-      },
-//      handle drag and dropping the dames manually
-      allowDrop(evt) {
-//        console.log('allowDrop evt: ', evt, evt.target);
-        evt.target.tagName === "SPAN" && !evt.target.classList.contains('tile--threatened') && evt.preventDefault();
-      },
-      dragLeave(evt) {
-        evt.target.parentNode.removeAttribute('drop-active');
-        evt.dataTransfer.setData("text", evt.target.id);
-      },
-      dragEnter(evt) {
-//        console.log('allowDrop evt: ', evt.target);
-        evt.target.parentNode.setAttribute('drop-active', true);
-      },
-      drag(evt) {
-//        console.log('drag evt: ', evt, evt.srcElement)
-        evt.dataTransfer.setData("text", evt.target.id)
-      },
-      /* executes whenever the dame image is dropped on a chess tile or a dame-pool-tile
-      @params evt (Event): the drop type event when a dragged element is release by mouseclick
-      @params rowIndex (Number): maps the tile to the row in the tiles Array in the data property
-      @params tileIndex (Number): maps the tile to the index within a row in the tiles Array in the data property
-      @params remainingDamesIndex (Number): gives the tile index in the dame pool
-      * */
-      drop(evt, rowIndex, tileIndex, remainingDamesIndex) {
 
-//        remove the "droppable to" tile to remove highlighting on the tile
-        evt.target.removeAttribute('drop-active')
-        evt.target.parentNode.removeAttribute('drop-active')
-        evt.preventDefault() //actually do drop the dame img on the tile
-
-        var data = evt.dataTransfer.getData("text")
-        var draggedElement = document.getElementById(data)
-        var dameNumber = (draggedElement.dataset['dameNumber']) ? parseInt(draggedElement.dataset['dameNumber']) : -1;
-        var targetTile = null
-        if (rowIndex !== undefined && tileIndex !== undefined) {
-          targetTile = this.tiles[rowIndex][tileIndex]
-          targetTile.occupiedByDame = dameNumber
-          console.log('this.tiles: ', this.tiles)
+        /* place new dames on the game field */
+        this.remainingDames = [{}, {}, {}, {}, {}, {}, {}, {}].map((dame, dameIndex) => {
+          return { occupiedByDame: (dameIndex+1) }
+        })
+        this.$forceUpdate();
+      },
+      solveAlone() {
+        if(this.solve.mode === 'auto') {
+          this.solve.mode = 'alone'
+          this.init()
+        }else {
+          this.init()
+          console.log('this.tiles:  ', this.tiles[7][7].occupiedByDame);
         }
-
-        //@ToDo reset occupiedByDame on the field tile, if returned to dame-pool-tile
-        console.log('this.remainingDames: ', this.remainingDames)
-        if (remainingDamesIndex !== undefined) {
-          console.log('this.remainingDames: ', this.remainingDames, remainingDamesIndex)
-          this.remainingDames[remainingDamesIndex].occupiedByDame = parseInt(dameNumber)
-        }
-
-//        its a dame pool tile, so set remove its
-//        evt.srcElement.parentNode.id.indexOf('dame-pool-tile') > -1
-        console.log('draggedElement: ', evt, targetTile, dameNumber ,draggedElement);
-        evt.target.appendChild(draggedElement);
+      },
+      findOneSolutions() {
+        this.solve.mode = 'auto'
+        this.init();
+      },
+      findAllSolutions() {
+        this.solve.mode = 'auto'
+        this.init();
       }
     }
   }
@@ -175,6 +165,11 @@
     heigth 100%
     padding-top 0
     z-index 1
+  .game-settings
+    position relative
+    width 100%
+    height 100%
+    padding auto auto
   .game-map
     position relative
     margin: 10vh 8vh
