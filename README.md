@@ -1,6 +1,8 @@
 # 8-Dames-Problem
 
-> 8-Dames-Problem
+> solves the n-dames problem with 8 dames on a 8x8 chess field. finds one or all solutions and renders the solutions on the chess field. Also enables to manually solve with drag and drop
+
+try it out the hosted version here on [8-queens-problem](http://steinmiller.bplaced.net/eight-queens-problem/#/)
 
 ## Build Setup
 
@@ -8,15 +10,12 @@
 # install dependencies
 npm install or npm i
 
-# serve with hot reload at localhost:8080
+# serve with hot reload at localhost:8005
 npm run dev
 
 # build for production with minification
 npm run build
 ```
-
-For detailed explanation on how things work, checkout the [guide](http://vuejs-templates.github.io/webpack/) and [docs for vue-loader](http://vuejs.github.io/vue-loader).
-
 
 >License:
 ``` bash

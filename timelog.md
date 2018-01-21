@@ -8,4 +8,4 @@
 
 >12.01.18 - 3.5h - developed an iterative solution with backtracking to find exaxtly the first possible solution
 
->21.01.18 - 4h - added all solutions algorithm and rendering of solutions
+>21.01.18 - 5h - added all solutions algorithm and rendering of solutions

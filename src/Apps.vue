@@ -20,8 +20,5 @@ export default {
   color #2c3e50
   border-radius .5em
   width 100vw
-  /*background #e0e0e0*/
-  /*height 100%*/
-  /*min-height 100%*/
 
 </style>
