@@ -3,8 +3,6 @@
 </template>
 
 <script>
-//  import axios from 'axios'
-
   export default {
     name: 'dragAndDropMixin',
     data() {
@@ -19,21 +17,23 @@
     methods: {
       /*handle drag and dropping the dames manually*/
       allowDrop(evt) {
-//        console.log('allowDrop evt: ', evt, evt.target);
+        /* if tile is not threathened allow the drop */
         evt.target.tagName === "SPAN" && !evt.target.classList.contains('tile--threatened') && evt.preventDefault()
+//        console.log('allowDrop evt: ', evt, evt.target);
       },
       dragLeave(evt) {
+        /* remove the mark for the red threat background */
         evt.target.parentNode.removeAttribute('drop-active')
         evt.dataTransfer.setData("text", evt.target.id)
       },
       dragEnter(evt) {
-//        console.log('allowDrop evt: ', evt.target);
+        /* add the mark for the possible red threat background */
         evt.target.parentNode.setAttribute('drop-active', true)
+//        console.log('allowDrop evt: ', evt.target);
       },
       dragStart(evt) {
-        console.log('dragstart evt: ', evt/*, evt.srcElement, 'evt.target.id: '*/, evt.target.id)
         evt.dataTransfer.setData("text", evt.target.id)
-//        evt.dataTransfer.setDragImage(document.querySelector('#dame_0'), 999, 999);
+//        console.log('dragstart evt: ', evt/*, evt.srcElement, 'evt.target.id: '*/, evt.target.id)
       },
       /* executes whenever the dame image is dropped on a chess tile or a dame-pool-tile
       @params evt (Event): the drop type event when a dragged element is release by mouseclick
@@ -42,7 +42,6 @@
       @params remainingDamesIndex (Number): gives the tile index in the dame pool
       * */
       drop(evt, rowIndex, tileIndex, remainingDamesIndex) {
-
 //        remove the "droppable to" tile to remove highlighting on the tile
         evt.target.removeAttribute('drop-active')
         evt.target.parentNode.removeAttribute('drop-active')
@@ -56,23 +55,19 @@
         if (rowIndex !== undefined && tileIndex !== undefined) {
           targetTile = this.tiles[rowIndex][tileIndex]
           targetTile.occupiedByDame = dameNumber
-          console.log('this.tiles: ', this.tiles)
+//          console.log('this.tiles: ', this.tiles)
         }
 
-        //@ToDo reset occupiedByDame on the field tile, if returned to dame-pool-tile
-        console.log('this.remainingDames: ', this.remainingDames, 'valid dame index '+(remainingDamesIndex !== undefined))
+//        console.log('this.remainingDames: ', this.remainingDames, 'valid dame index '+(remainingDamesIndex !== undefined))
         if (remainingDamesIndex !== undefined) {
           this.remainingDames[remainingDamesIndex].occupiedByDame = parseInt(dameNumber)
         }
 
         /*its a dame pool tile, so set remove its*/
-//        evt.srcElement.parentNode.id.indexOf('dame-pool-tile') > -1
-        console.log('draggedElement: ', evt, targetTile, dameNumber ,draggedElement)
         evt.target.appendChild(draggedElement)
       }
     }
   }
-        //@ToDo: comment the code
 </script>
 
 <style lang="stylus">

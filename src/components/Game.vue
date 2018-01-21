@@ -9,8 +9,10 @@
       <v-btn class=""
              @click="findAllSolutions">find all solutions</v-btn>
       <v-btn class=""
-             @click="solveAlone">{{ (solve.mode === 'auto') ? 'solve alone' : 'reset' }}</v-btn>
+             @click="solveAlone">{{ (solve.mode === 'oneSolution' || solve.mode === 'allSolutions') ? 'solve alone' : 'reset' }}</v-btn>
+      <v-btn >Tried positions: {{triedPositions}}</v-btn>
     </span>
+
 
     <div class="game-map">
 
@@ -64,6 +66,12 @@
         </div>
 
       </div>
+      <div class="game-map__solutions" v-if="allSolutionsList.length">
+        <h3>solutions</h3>
+        <div v-for="(solution, index) in allSolutionsList"  class="game-map__solutions_item">
+          <a @click="showSolutionOnChessField(solution)">#{{index+1}}</a>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -76,7 +84,7 @@ var range = (a, b) => {while(a--)b[a]=a+1;return b}
 //  ES6 style [...Array(N+1).keys()].slice(1)
 
 export default {
-  name: 'dames-problem',
+  name: 'queens-problem',
   mixins: [dragAndDropMixin],
   data() {
     return {
@@ -101,9 +109,11 @@ export default {
               [{},{},{},{},{},{},{},{}],
               [{},{},{},{},{},{},{},{}]],
       remainingDames: [],
-      title: '8-Dames-Problem',
-      solve: { mode: 'auto', message: 'solve yourself'},
+      title: '8-Queens-Problem',
+      solve: { mode: 'oneSolution', message: 'solve yourself'},
       N: 8, /*determines the complexity of the problem*/
+      allSolutionsList: [], /* contains all found solutions if the find all solutions button was clicked */
+      triedPositions: 0 /* track the amount of tried row/column combinations */
     }
   },
   mounted() {
@@ -112,6 +122,11 @@ export default {
   },
   methods: {
     init () {
+      /* reset the list of solutions and set mode to allSolutions, so that the algorithm
+       * doesn't return on the first found solution, but rather keeps backtracking to find
+       * the next possible solution until no solutions can be found anymore */
+      this.allSolutionsList = []
+      this.triedPositions = 0
       this.setupTiles();
       this.setupDames();
     },
@@ -139,48 +154,64 @@ export default {
       this.$forceUpdate();
     },
     solveAlone() {
-      if(this.solve.mode === 'auto') {
+      this.init()
+      if(this.solve.mode !== 'alone') {
         this.solve.mode = 'alone'
-        this.init()
-      }else {
-        this.init()
-        console.log('this.tiles:  ', this.tiles[7][7].occupiedByDame);
       }
     },
     findOneSolutions() {
-      var self = this;
-      this.solve.mode = 'auto'
+      this.solve.mode = 'oneSolution'
       this.init();
 
       /* create N x N Array[][]*/
-      let field = [...Array(self.N).keys()].map((row) => {
+      let field = [...Array(this.N).keys()].map((row) => {
           /* put zeros in it to mark the field empty */
-          return [...Array(self.N).keys()].map(() => { return 0; })
+          return [...Array(this.N).keys()].map(() => { return 0; })
       })
-      console.log('field: ', field);
+
       /* search for a solution algorithmically */
       if ( this.findSolution(field, 0) === false ){
         console.warn("no solutions were found");
         return ;
       }
-      var solution = field
-      this.prettyPrintNDamesSolution(solution)
-      /* append the solution to the game-field */
+
+      /* print the solutions */
+      this.allSolutionsList.forEach((solution, index) => {
+        this.prettyPrintNDamesSolution(solution, index+1)
+
+        /* append the solution to the game-field */
+        this.showSolutionOnChessField(solution)
+      })
 
     },
     findAllSolutions() {
-      this.solve.mode = 'auto'
-      this.init();
+      this.solve.mode = 'allSolutions'
+      this.init()
+
+      /* create N x N Array[][]*/
+      let field = [...Array(this.N).keys()].map((row) => {
+        return [...Array(this.N).keys()].map(() => { return 0; }) /* put zeros in it to mark the field empty */
+      })
+
+      /* search for a solution algorithmically */
+      if (this.findSolution(field, 0)){
+        console.warn("no solutions were found");
+        return ;
+      }
+
+      this.allSolutionsList.forEach((solution, index) => {
+        this.prettyPrintNDamesSolution(solution, index+1)
+      })
     },
-    prettyPrintNDamesSolution(solution){
+    prettyPrintNDamesSolution(solution, number){
 
       var alphabetArray = [...Array(this.N).keys()].map((charIndex) => {
         return String.fromCharCode(charIndex + 65);
       })
-      console.log('At least one solution found: \r\n\r\n  ', alphabetArray.join(',')+ '\r\n' +
+      console.log('solution #'+ number +' \r\n  ', alphabetArray.join(',')+ '\r\n' +
                   solution.map((row, ind)=>{ return ind+' [' + row.toString() + ']'; }).join('\r\n'));
     },
-    /*The main algorithm to find a solution algorithmically
+    /* The main algorithm to find a solution algorithmically
      * 1.) iterate over each row and simulate placing dame by marking the tile with an 1 if the position is safe,
      *     otherwise stop this iteration
      * 2.) if the current[row][col] position is safe an doesnt attack other dames on the western part of the chess field,
@@ -191,27 +222,37 @@ export default {
      *
      * @returns Solution to N-Dames-Problem */
     findSolution(field, currentCol) {
-      var self = this;
-      if(currentCol >= self.N) return true;
+      if(currentCol >= this.N) {
+        /* push currently found solution with all N placed dames to a
+          /* copy the current state of the chess field, otherwise the reference is kept in all solutions */
+          var newSolution = JSON.parse(JSON.stringify(field.slice()));
+          this.allSolutionsList.push(newSolution)
+        return true;
+      }
 
       /* iterate over each row in column currentCol */
-      for (let currentRow = 0; currentRow < self.N; currentRow++){
-//        console.log('try placind dame on   row[%s][%s]col ', currentRow, currentCol);
-        if(self.positionIsSafe(field, currentRow, currentCol)){
+      for (let currentRow = 0; currentRow < this.N; currentRow++){
+        /*try placind dame on  row[currentRow] - col[currentCol]*/
+        if(this.positionIsSafe(field, currentRow, currentCol)){
           /*queen is currently safe at [currentRow][currentCol], so place a dame at this position by marking it with a 1*/
           field[currentRow][currentCol] = 1
 
+          this.triedPositions++;
+
+          /* if we want to find all solutions, we just simply recursively curl and print the solutions */
+          this.solve.mode === 'allSolutions' && this.findSolution(field, currentCol+1);
+
           /* deep dive into the successive solutions to find out
-           *  if the current position of the current dame is ok and part of a solution
-           *  if yes, we return the sub-solution, otherwise we delete the dame from [currentRow][currentCol]
-           *  and go on with the next rowIndex by returning false*/
-          if(self.findSolution(field, currentCol+1)) return true;
+           * if the current position of the current dame is ok and part of a solution
+           * if yes, we return the sub-solution, otherwise we delete the dame from [currentRow][currentCol]
+           * and go on with the next rowIndex by returning false*/
+          if(this.solve.mode === 'oneSolution' && this.findSolution(field, currentCol+1)) {
+            return true;
+          }
           field[currentRow][currentCol] = 0
         }
       }
       /* no solution was found for all rows -> go back to currentCol-1*/
-      var noSolution = JSON.parse(JSON.stringify(field));
-//      console.log('no solution for currentCol: '/*, currentCol, ' ... no solution with: ', noSolution.map((row)=>{return '[' + row.toString() + ']\r\n'; })*/ );
       return false
     },
     positionIsSafe(field, currentRow, currentCol) {
@@ -236,10 +277,31 @@ export default {
       /* no need to look to the right, because the right is always empty or the end of the chess board */
       return true;
     },
-    marksTreathenedTiles() {
+    /* append the solution to the game-field */
+    showSolutionOnChessField(solution) {
+      this.setupTiles();
+      this.setupDames();
 
+      var $dames = document.querySelectorAll('img[data-dame-number]');
 
+      /* get all the occupied fields in the solution*/
+      var occupiedFields = [];
+      solution.forEach((row, rowIndex) => {
+        row.forEach((col, colIndex) => {
+          if (solution[rowIndex][colIndex]) occupiedFields.push([rowIndex,colIndex].join('-'))
+        })
+      });
+
+      /* now place dames on the occupied fields*/
+      [].forEach.call($dames, (dame, index) => {
+        var occupiedField = occupiedFields[index].split('-');
+        var dameSelector = '#tile_'+occupiedField[0]+'_'+occupiedField[1];
+        var $damePoolTile = document.querySelector(dameSelector);
+        $damePoolTile.appendChild(dame);
+      })
+      this.$forceUpdate();
     }
+
   }
 }
 </script>
@@ -260,6 +322,19 @@ export default {
   .game-map
     position relative
     margin: 10vh 8vh
+    &__solutions
+      position absolute
+      top: -8vh
+      right: -16vh
+      float: right
+      &_item
+        color black
+        cursor pointer
+        &:hover
+          color red
+          text-decoration underline
+          text-decoration-color red
+
     &__field
       .tile
         z-index auto
