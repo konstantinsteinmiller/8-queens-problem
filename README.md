@@ -1,6 +1,6 @@
-# 8-Dames-Problem
+# 8-Queens-Problem
 
-> solves the n-dames problem with 8 dames on a 8x8 chess field. finds one or all solutions and renders the solutions on the chess field. Also enables to manually solve with drag and drop
+> solves the n-Queens-problem with 8 dames on a 8x8 chess field. finds one or all solutions and renders the solutions on the chess field. Also enables to manually solve with drag and drop
 
 try it out the hosted version here on [8-queens-problem](http://steinmiller.bplaced.net/eight-queens-problem/#/)
 
