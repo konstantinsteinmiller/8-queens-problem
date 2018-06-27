@@ -17,6 +17,10 @@ npm run dev
 npm run build
 ```
 
+## UI
+![8-Dames-App](https://raw.githubusercontent.com/konstantinsteinmiller/8-queens-problem/master/static/8-queens-problem.PNG)
+
+
 >License:
 ``` bash
 DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
